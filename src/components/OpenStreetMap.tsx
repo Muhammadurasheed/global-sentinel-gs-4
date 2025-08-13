@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -235,7 +234,7 @@ export const OpenStreetMap: React.FC<ThreatMapProps> = ({ threats = [] }) => {
                 </div>
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 rounded-full bg-cyan-500"></div>
-                  <span className="text-xs text-muted-foreground">Low (&lt;40)</span>
+                  <span className="text-xs text-muted-foreground">Low (&lt; 40)</span>
                 </div>
               </div>
             </div>

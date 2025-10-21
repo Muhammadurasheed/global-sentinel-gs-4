@@ -1,7 +1,6 @@
 
 const { getFirestore } = require('../config/firebase');
-const openRouterClient = require('../utils/openRouterClient');
-const SonarPromptBuilder = require('../utils/sonarPromptBuilder');
+const geminiClient = require('../utils/geminiClient');
 const { v4: uuidv4 } = require('uuid');
 
 class VerificationController {
@@ -16,21 +15,16 @@ class VerificationController {
         });
       }
       
-      console.log(`🔍 Verifying claim: ${claim.substring(0, 100)}...`);
+      console.log(`🔍 Verifying claim with Gemini AI: ${claim.substring(0, 100)}...`);
       
       const db = getFirestore();
-      const prompt = SonarPromptBuilder.buildVerificationPrompt(claim);
       
-      // Run both supporting and counter analysis
-      const [supportingAnalysis, counterAnalysis] = await Promise.all([
-        openRouterClient.callSonarReasoning(prompt),
-        openRouterClient.callSonarReasoning(prompt, true) // Use counter flag
-      ]);
+      // Use Gemini with Google Search grounding for comprehensive verification
+      const verificationText = await geminiClient.verifyThreat(claim);
       
       // Parse verification results
-      const verification = await VerificationController.parseVerification(
-        supportingAnalysis, 
-        counterAnalysis, 
+      const verification = await VerificationController.parseGeminiVerification(
+        verificationText, 
         claim
       );
       
@@ -64,13 +58,13 @@ class VerificationController {
     }
   }
 
-  static async parseVerification(supportingText, counterText, claim) {
+  static async parseGeminiVerification(verificationText, claim) {
     try {
-      const supportingEvidence = VerificationController.extractEvidence(supportingText);
-      const counterEvidence = VerificationController.extractEvidence(counterText);
-      const confidence = VerificationController.calculateConfidence(supportingText, counterText);
+      const supportingEvidence = VerificationController.extractEvidence(verificationText, 'supporting');
+      const counterEvidence = VerificationController.extractEvidence(verificationText, 'counter');
+      const confidence = VerificationController.calculateConfidenceFromGemini(verificationText);
       const verdict = VerificationController.determineVerdict(confidence, supportingEvidence, counterEvidence);
-      const sources = VerificationController.extractSources(supportingText + ' ' + counterText);
+      const sources = VerificationController.extractSources(verificationText);
       
       return {
         verdict,
@@ -87,21 +81,64 @@ class VerificationController {
     }
   }
 
-  static extractEvidence(text) {
+  static extractEvidence(text, section = 'all') {
     const evidence = [];
     const lines = text.split('\n');
+    let inSection = section === 'all';
     
     lines.forEach(line => {
       const trimmed = line.trim();
-      if (trimmed.includes('evidence') || trimmed.includes('support') || 
-          trimmed.includes('shows') || trimmed.includes('indicates')) {
-        evidence.push(trimmed);
-      } else if (trimmed.match(/^[\-\•\*]\s/)) {
-        evidence.push(trimmed.replace(/^[\-\•\*]\s/, ''));
+      const lower = trimmed.toLowerCase();
+      
+      // Detect sections
+      if (section === 'supporting' && lower.includes('supporting')) {
+        inSection = true;
+        return;
+      } else if (section === 'counter' && lower.includes('counter')) {
+        inSection = true;
+        return;
+      } else if (lower.includes('verdict') || lower.includes('confidence')) {
+        inSection = false;
+        return;
+      }
+      
+      // Extract evidence items
+      if (inSection && (trimmed.match(/^[\d\-\•\*]/) || lower.includes('evidence') || lower.includes('shows'))) {
+        const cleaned = trimmed.replace(/^[\d\-\•\*\.\s]+/, '').trim();
+        if (cleaned.length > 15) {
+          evidence.push(cleaned);
+        }
       }
     });
     
-    return evidence.slice(0, 5); // Limit to top 5 pieces of evidence
+    return evidence.slice(0, 5);
+  }
+
+  static calculateConfidenceFromGemini(text) {
+    // Try to extract explicit confidence score
+    const confidenceMatch = text.match(/confidence[:\s]+(\d+)/i);
+    if (confidenceMatch) {
+      return parseInt(confidenceMatch[1]);
+    }
+    
+    // Fallback to keyword-based calculation
+    const supportingKeywords = ['confirmed', 'verified', 'documented', 'established', 'proven'];
+    const uncertaintyKeywords = ['alleged', 'unconfirmed', 'disputed', 'questionable', 'unclear'];
+    
+    let score = 50;
+    
+    supportingKeywords.forEach(keyword => {
+      if (text.toLowerCase().includes(keyword)) score += 8;
+    });
+    
+    uncertaintyKeywords.forEach(keyword => {
+      if (text.toLowerCase().includes(keyword)) score -= 10;
+    });
+    
+    const credibleSources = (text.match(/\.(gov|edu|org|int)\b/g) || []).length;
+    score += credibleSources * 3;
+    
+    return Math.max(10, Math.min(95, Math.round(score)));
   }
 
   static calculateConfidence(supportingText, counterText) {

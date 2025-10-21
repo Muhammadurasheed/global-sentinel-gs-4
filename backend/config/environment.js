@@ -49,8 +49,33 @@ const getFirebaseConfig = () => {
   };
 };
 
+/**
+ * Google Cloud configuration provider
+ */
+const getGoogleCloudConfig = () => {
+  const projectId = process.env.GOOGLE_CLOUD_PROJECT;
+  const location = process.env.GOOGLE_CLOUD_LOCATION || 'us-central1';
+
+  if (!projectId) {
+    console.warn('⚠️  GOOGLE_CLOUD_PROJECT not set. AI features will use fallback mode.');
+    console.warn('💡 To enable Gemini AI: Set GOOGLE_CLOUD_PROJECT in your .env file');
+    return {
+      projectId: null,
+      location,
+      isDemoMode: true
+    };
+  }
+
+  return {
+    projectId: projectId.trim(),
+    location: location.trim(),
+    isDemoMode: false
+  };
+};
+
 module.exports = {
   getFirebaseConfig,
+  getGoogleCloudConfig,
   isDevelopment: process.env.NODE_ENV !== 'production',
   port: process.env.PORT || 5000
 };

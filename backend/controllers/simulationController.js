@@ -1,7 +1,6 @@
 
 const { getFirestore } = require('../config/firebase');
-const openRouterClient = require('../utils/openRouterClient');
-const SonarPromptBuilder = require('../utils/sonarPromptBuilder');
+const geminiClient = require('../utils/geminiClient');
 const { v4: uuidv4 } = require('uuid');
 
 class SimulationController {
@@ -21,19 +20,12 @@ class SimulationController {
       const simulationId = uuidv4();
       
       try {
-        // Build comprehensive simulation prompt
-        const prompt = SonarPromptBuilder.buildSimulationPrompt(scenario);
-        
-        // Run Sonar reasoning and deep search in parallel
-        const [reasoningResult, searchResult] = await Promise.all([
-          openRouterClient.callSonarReasoning(prompt),
-          openRouterClient.callSonarDeep(`Evidence and sources for crisis scenario: ${scenario}`)
-        ]);
+        // Use Gemini with Google Search grounding for comprehensive simulation
+        const analysisText = await geminiClient.simulationAnalysis(scenario);
         
         // Parse the comprehensive analysis
-        const simulationResult = SimulationController.parseComprehensiveAnalysis(
-          reasoningResult, 
-          searchResult, 
+        const simulationResult = SimulationController.parseGeminiAnalysis(
+          analysisText, 
           scenario
         );
         
@@ -63,8 +55,8 @@ class SimulationController {
           message: 'Live crisis simulation completed successfully'
         });
         
-      } catch (sonarError) {
-        console.warn('⚠️ Sonar analysis failed, using structured fallback:', sonarError.message);
+      } catch (geminiError) {
+        console.warn('⚠️ Gemini analysis failed, using structured fallback:', geminiError.message);
         
         // Enhanced fallback simulation
         const fallbackResult = SimulationController.generateEnhancedFallback(scenario);
@@ -96,9 +88,9 @@ class SimulationController {
     }
   }
 
-  static parseComprehensiveAnalysis(reasoningText, searchText, scenario) {
+  static parseGeminiAnalysis(analysisText, scenario) {
     try {
-      const lines = reasoningText.split('\n').filter(line => line.trim());
+      const lines = analysisText.split('\n').filter(line => line.trim());
       
       const flowchart = [];
       const mitigations = [];
@@ -116,7 +108,7 @@ class SimulationController {
           continue;
         }
         
-        if (trimmed.toLowerCase().includes('mitigation') || trimmed.toLowerCase().includes('response') || trimmed.toLowerCase().includes('countermeasure')) {
+        if (trimmed.toLowerCase().includes('mitigation') || trimmed.toLowerCase().includes('response') || trimmed.toLowerCase().includes('strateg')) {
           currentSection = 'mitigation';
           continue;
         }
@@ -154,13 +146,12 @@ class SimulationController {
         }
       }
       
-      // Extract sources from search result
-      const sources = SimulationController.extractSources(searchText);
+      // Extract sources from analysis
+      const sources = SimulationController.extractSources(analysisText);
       
       // Calculate metrics
       const confidence = SimulationController.calculateSimulationConfidence(
-        reasoningText, 
-        searchText, 
+        analysisText, 
         supportingPoints, 
         counterPoints
       );
@@ -187,8 +178,8 @@ class SimulationController {
         counterPoints: counterPoints.slice(0, 5),
         confidence,
         verdict,
-        timeline: SimulationController.extractTimeline(reasoningText),
-        impact: SimulationController.extractImpact(reasoningText),
+        timeline: SimulationController.extractTimeline(analysisText),
+        impact: SimulationController.extractImpact(analysisText),
         sources: sources.slice(0, 8)
       };
       
@@ -198,14 +189,13 @@ class SimulationController {
     }
   }
 
-  static calculateSimulationConfidence(reasoning, search, supporting, counter) {
+  static calculateSimulationConfidence(analysisText, supporting, counter) {
     let score = 60; // Base confidence for simulations
     
     // Evidence strength
-    const evidenceKeywords = ['evidence', 'documented', 'confirmed', 'verified', 'proven'];
+    const evidenceKeywords = ['evidence', 'documented', 'confirmed', 'verified', 'proven', 'research', 'data'];
     evidenceKeywords.forEach(keyword => {
-      if (reasoning.toLowerCase().includes(keyword)) score += 5;
-      if (search.toLowerCase().includes(keyword)) score += 3;
+      if (analysisText.toLowerCase().includes(keyword)) score += 4;
     });
     
     // Supporting vs counter evidence
@@ -213,12 +203,12 @@ class SimulationController {
     const counterWeight = counter.length * 2;
     score += supportWeight - counterWeight;
     
-    // Source quality from search
-    const urlCount = (search.match(/https?:\/\/[^\s]+/g) || []).length;
+    // Source quality
+    const urlCount = (analysisText.match(/https?:\/\/[^\s]+/g) || []).length;
     score += Math.min(urlCount * 2, 15);
     
     // Credible domains
-    const credibleDomains = (search.match(/\.(gov|edu|org|int)\b/g) || []).length;
+    const credibleDomains = (analysisText.match(/\.(gov|edu|org|int)\b/g) || []).length;
     score += credibleDomains * 4;
     
     return Math.max(25, Math.min(95, Math.round(score)));

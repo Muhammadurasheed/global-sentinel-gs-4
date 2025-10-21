@@ -1,8 +1,7 @@
 
 const { getFirestore } = require('../config/firebase');
 const ChaosIndexCalculator = require('../utils/chaosIndexCalculator');
-const SonarPromptBuilder = require('../utils/sonarPromptBuilder');
-const openRouterClient = require('../utils/openRouterClient');
+const geminiClient = require('../utils/geminiClient');
 
 class TrendsController {
   static async getTrends(req, res) {
@@ -190,9 +189,23 @@ class TrendsController {
         recentThreats.push({ id: doc.id, ...doc.data() });
       });
       
-      // Generate AI-powered trend analysis
-      const trendPrompt = SonarPromptBuilder.buildTrendAnalysisPrompt(`${days} days`);
-      const analysis = await openRouterClient.callSonarReasoning(trendPrompt);
+      // Generate AI-powered trend analysis with Gemini
+      const trendPrompt = `Analyze global threat trends and generate forecast for the next ${days} days.
+
+Recent threat data summary:
+- Total threats analyzed: ${recentThreats.length}
+- Average severity: ${recentThreats.reduce((sum, t) => sum + (t.severity || 0), 0) / recentThreats.length || 0}
+- Top threat types: ${[...new Set(recentThreats.map(t => t.type))].join(', ')}
+
+Provide:
+1. KEY RISK FACTORS (5 points): Primary drivers of threat escalation
+2. EMERGING THREATS (3-5 points): New or growing threat categories
+3. RECOMMENDATIONS (5 points): Strategic actions for risk mitigation
+4. CONFIDENCE ASSESSMENT: Overall forecast confidence (0-100)
+
+Focus on actionable intelligence and specific predictions.`;
+      
+      const analysis = await geminiClient.analyzeWithGrounding(trendPrompt);
       
       // Parse forecast
       const forecast = TrendsController.parseForecast(analysis, recentThreats, days);

@@ -1,5 +1,6 @@
 const { getFirestore, logger, isDemoMode, initializeSampleThreats } = require('../config/firebase');
 const { v4: uuidv4 } = require('uuid');
+const elasticSearchService = require('../services/elasticSearchService');
 
 // In-memory cache for threats when Firebase quota is exceeded
 let threatCache = [];
@@ -210,7 +211,16 @@ class DetectionController {
           
           // Use the generated ID as document ID
           await db.collection('threats').doc(threatData.id).set(threatData);
-          console.log(`✅ Threat stored in Firestore: ${threatData.id}`);
+      console.log(`✅ Threat stored in Firestore: ${threatData.id}`);
+          
+          // Index in Elastic Search for hybrid search capabilities
+          elasticSearchService.indexThreat(threatData)
+            .then(result => {
+              if (result.success) {
+                console.log(`🔍 Threat indexed in Elastic: ${threatData.id}`);
+              }
+            })
+            .catch(err => console.error('⚠️ Elastic indexing failed:', err.message));
           
           // Clear cache to force refresh
           threatCache = [];

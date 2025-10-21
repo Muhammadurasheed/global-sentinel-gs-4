@@ -12,7 +12,8 @@ import {
   Zap,
   Globe,
   Activity,
-  CheckCircle
+  CheckCircle,
+  MessageSquare
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useThreats } from '@/hooks/useThreats';
@@ -21,10 +22,12 @@ import EnhancedThreatCard from './EnhancedThreatCard';
 import { OpenStreetMap } from './OpenStreetMap';
 import { ThreatChart } from './ThreatChart';
 import SimulationModal from './SimulationModal';
+import { AIAgentChat } from './AIAgentChat';
 
 export const EnhancedThreatDashboard = () => {
   const [selectedThreat, setSelectedThreat] = useState(null);
   const [showSimulation, setShowSimulation] = useState(false);
+  const [showAIChat, setShowAIChat] = useState(false);
   const [activeView, setActiveView] = useState<'grid' | 'map' | 'chart'>('grid');
   const { toast } = useToast();
 
@@ -110,6 +113,14 @@ export const EnhancedThreatDashboard = () => {
           </div>
           
           <div className="flex items-center space-x-3">
+            <Button 
+              onClick={() => setShowAIChat(!showAIChat)}
+              className={`cyber-button ${showAIChat ? 'bg-cyan-600/30 text-cyan-300' : 'bg-cyan-600/20 text-cyan-400'} border-cyan-500`}
+            >
+              <MessageSquare className="w-4 h-4 mr-2" />
+              AI Agent
+            </Button>
+
             <Button 
               onClick={handleRefresh}
               disabled={isLoading}
@@ -209,6 +220,17 @@ export const EnhancedThreatDashboard = () => {
               HIGH PRIORITY
             </Badge>
           </div>
+        </motion.div>
+      )}
+
+      {/* AI Agent Chat */}
+      {showAIChat && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+        >
+          <AIAgentChat />
         </motion.div>
       )}
 

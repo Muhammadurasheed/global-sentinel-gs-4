@@ -23,7 +23,7 @@ class SmartScrapingService {
   async runIntelligentScrape() {
     if (this.isRunning) {
       logger.warn('🔄 Smart scrape already in progress, skipping...');
-      return;
+      return { success: false, message: 'Scrape already in progress' };
     }
 
     this.isRunning = true;
@@ -45,8 +45,21 @@ class SmartScrapingService {
       logger.info(`✅ Smart scrape completed: ${selectedThreats.length} threats processed in ${duration}s`);
       this.lastScrapeTime = new Date().toISOString();
 
+      return {
+        success: true,
+        threats: selectedThreats,
+        count: selectedThreats.length,
+        duration: parseFloat(duration),
+        timestamp: this.lastScrapeTime
+      };
+
     } catch (error) {
       logger.error(`❌ Smart scrape failed: ${error.message}`);
+      return {
+        success: false,
+        error: error.message,
+        timestamp: new Date().toISOString()
+      };
     } finally {
       this.isRunning = false;
     }

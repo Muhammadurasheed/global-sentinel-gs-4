@@ -8,8 +8,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Brain, Search, TrendingUp, CheckCircle2, XCircle, 
   Loader2, Zap, Eye, Network, ChevronRight, ExternalLink,
-  AlertTriangle, Clock, Target, Shield
+  AlertTriangle, Clock, Target, Shield, FileText
 } from 'lucide-react';
+import { useAgentWorkflow } from '@/hooks/useAgentWorkflow';
+import { FullReportPage } from './FullReportPage';
 
 interface AgentStep {
   id: string;
@@ -190,6 +192,8 @@ export const AgentWorkflowModal: React.FC<AgentWorkflowModalProps> = ({
   const [overallProgress, setOverallProgress] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
   const [finalResult, setFinalResult] = useState<any>(null);
+  const [showFullReport, setShowFullReport] = useState(false);
+  const { executeWorkflow, isLoading } = useAgentWorkflow();
 
   const config = WORKFLOW_CONFIGS[workflowType];
 
@@ -224,19 +228,35 @@ export const AgentWorkflowModal: React.FC<AgentWorkflowModalProps> = ({
 
     setSteps(initialSteps);
 
-    // Simulate agent execution
+    // Simulate visual agent execution
     for (let i = 0; i < config.agents.length; i++) {
       await executeAgent(i, config.agents[i].messages);
     }
 
-    // Complete workflow
-    const result = generateFinalResult();
-    setFinalResult(result);
-    setIsComplete(true);
-    setOverallProgress(100);
-    
-    if (onComplete) {
-      onComplete(result);
+    // Call REAL backend workflow
+    try {
+      console.log('🚀 Calling real backend workflow:', workflowType);
+      const backendResult = await executeWorkflow(workflowType, threat);
+      
+      // Use real backend result
+      setFinalResult(backendResult.result);
+      setIsComplete(true);
+      setOverallProgress(100);
+      
+      if (onComplete) {
+        onComplete(backendResult.result);
+      }
+    } catch (error) {
+      console.error('Backend workflow failed, using fallback:', error);
+      // Fallback to generated result if backend fails
+      const result = generateFinalResult();
+      setFinalResult(result);
+      setIsComplete(true);
+      setOverallProgress(100);
+      
+      if (onComplete) {
+        onComplete(result);
+      }
     }
   };
 
@@ -344,6 +364,18 @@ export const AgentWorkflowModal: React.FC<AgentWorkflowModalProps> = ({
         return <div className="h-5 w-5 rounded-full border-2 border-muted" />;
     }
   };
+
+  // Show full report if requested
+  if (showFullReport && finalResult) {
+    return (
+      <FullReportPage
+        workflowType={workflowType}
+        result={finalResult}
+        threat={threat}
+        onBack={() => setShowFullReport(false)}
+      />
+    );
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -516,9 +548,23 @@ export const AgentWorkflowModal: React.FC<AgentWorkflowModalProps> = ({
                 </div>
               )}
 
-              <Button onClick={onClose} className="w-full">
-                View Full Report
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => setShowFullReport(true)}
+                  className="flex-1 gap-2"
+                  variant="default"
+                >
+                  <FileText className="h-4 w-4" />
+                  View Full Report
+                </Button>
+                <Button
+                  onClick={onClose}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Close
+                </Button>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

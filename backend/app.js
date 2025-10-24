@@ -62,8 +62,12 @@ app.get('/api/health', async (req, res) => {
 
 // Initialize sample data on startup
 setTimeout(async () => {
-  console.log('🎯 Initializing sample threats...');
-  await initializeSampleThreats();
+  try {
+    console.log('🎯 Initializing sample threats...');
+    await initializeSampleThreats();
+  } catch (error) {
+    console.error('⚠️ Sample threats initialization failed (this is OK in demo mode)');
+  }
 }, 5000);
 
 // 404 handler

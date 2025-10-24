@@ -39,9 +39,13 @@ class ElasticSearchService {
   }
 
   async initializeIndex() {
-    if (this.fallbackMode) return;
+    if (this.fallbackMode) {
+      console.log('⚠️ Elastic in fallback mode - skipping index creation');
+      return;
+    }
 
     try {
+      console.log(`🔍 Checking if index exists: ${this.indexName}`);
       const indexExists = await this.client.indices.exists({ index: this.indexName });
       
       if (!indexExists) {
@@ -114,7 +118,10 @@ class ElasticSearchService {
       }
     } catch (error) {
       console.error('❌ Index initialization failed:', error.message);
-      throw error;
+      console.log('💡 This is normal if Elastic credentials are not configured');
+      console.log('💡 The system will continue in fallback mode');
+      // Don't throw - allow system to continue in fallback mode
+      this.fallbackMode = true;
     }
   }
 

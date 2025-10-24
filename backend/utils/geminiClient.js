@@ -9,10 +9,24 @@ class GeminiClient {
       throw new Error('❌ GOOGLE_CLOUD_PROJECT is required! Set up credentials in backend/.env');
     }
 
+    // Use Firebase service account credentials for Vertex AI authentication
+    const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+
+    if (!privateKey || !clientEmail) {
+      throw new Error('❌ FIREBASE_PRIVATE_KEY and FIREBASE_CLIENT_EMAIL are required for Gemini authentication!');
+    }
+
     try {
       this.vertexAI = new VertexAI({
         project: this.projectId,
-        location: this.location
+        location: this.location,
+        googleAuthOptions: {
+          credentials: {
+            client_email: clientEmail,
+            private_key: privateKey.replace(/\\n/g, '\n') // Handle escaped newlines
+          }
+        }
       });
       console.log(`✅ Gemini client initialized with project: ${this.projectId}`);
     } catch (error) {
@@ -193,6 +207,129 @@ Be thorough and cite specific, verifiable sources.`;
     return await this.analyzeWithGrounding(prompt,
       'You are a fact-checking specialist. Verify claims with rigorous evidence analysis and credible source citations.'
     );
+  }
+
+  // AI Agent Tool Calling Methods
+  async chatWithTools(systemPrompt, userMessage, tools, conversationHistory = []) {
+    try {
+      const model = 'gemini-2.0-flash-exp';
+      
+      const generativeModel = this.vertexAI.getGenerativeModel({
+        model: model,
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 8192
+        },
+        systemInstruction: systemPrompt,
+        tools: [{
+          functionDeclarations: tools.map(tool => ({
+            name: tool.name,
+            description: tool.description,
+            parameters: tool.parameters
+          }))
+        }]
+      });
+
+      // Build conversation history
+      const history = conversationHistory.map(msg => ({
+        role: msg.role === 'user' ? 'user' : 'model',
+        parts: [{ text: msg.content }]
+      }));
+
+      const chat = generativeModel.startChat({ history });
+      const result = await chat.sendMessage(userMessage);
+      const response = result.response;
+
+      // Check for function calls
+      const functionCalls = response.functionCalls();
+      
+      if (functionCalls && functionCalls.length > 0) {
+        return {
+          text: response.text() || '',
+          toolCalls: functionCalls.map(fc => ({
+            name: fc.name,
+            parameters: fc.args
+          }))
+        };
+      }
+
+      return {
+        text: response.text(),
+        toolCalls: []
+      };
+    } catch (error) {
+      console.error('🚨 Gemini chatWithTools error:', error.message);
+      throw new Error(`Gemini AI chat failed: ${error.message}`);
+    }
+  }
+
+  async chatWithToolResults(systemPrompt, userMessage, tools, conversationHistory, toolCalls, toolResults) {
+    try {
+      const model = 'gemini-2.0-flash-exp';
+      
+      const generativeModel = this.vertexAI.getGenerativeModel({
+        model: model,
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 8192
+        },
+        systemInstruction: systemPrompt,
+        tools: [{
+          functionDeclarations: tools.map(tool => ({
+            name: tool.name,
+            description: tool.description,
+            parameters: tool.parameters
+          }))
+        }]
+      });
+
+      // Build history with tool results
+      const history = conversationHistory.map(msg => ({
+        role: msg.role === 'user' ? 'user' : 'model',
+        parts: [{ text: msg.content }]
+      }));
+
+      const chat = generativeModel.startChat({ history });
+      
+      // Send tool results
+      const functionResponses = toolCalls.map((call, idx) => ({
+        name: call.name,
+        response: toolResults[idx]
+      }));
+
+      const result = await chat.sendMessage([{
+        functionResponses
+      }]);
+
+      return {
+        text: result.response.text()
+      };
+    } catch (error) {
+      console.error('🚨 Gemini chatWithToolResults error:', error.message);
+      throw new Error(`Gemini AI tool result processing failed: ${error.message}`);
+    }
+  }
+
+  async streamChatWithTools(systemPrompt, userMessage, tools, conversationHistory, streamCallback) {
+    // For now, use non-streaming version and call callback
+    try {
+      const response = await this.chatWithTools(systemPrompt, userMessage, tools, conversationHistory);
+      
+      if (response.toolCalls && response.toolCalls.length > 0) {
+        await streamCallback(null, response.toolCalls);
+      }
+      
+      // Stream text in chunks
+      const words = response.text.split(' ');
+      for (let i = 0; i < words.length; i += 5) {
+        const chunk = words.slice(i, i + 5).join(' ') + ' ';
+        await streamCallback(chunk, null);
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+    } catch (error) {
+      console.error('🚨 Gemini streaming error:', error.message);
+      throw error;
+    }
   }
 
 }

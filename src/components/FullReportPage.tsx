@@ -11,6 +11,7 @@ import {
   Users, Clock, MapPin, Shield, Target, Zap, Network,
   CheckCircle, XCircle, Info, ChevronRight, ExternalLink
 } from 'lucide-react';
+import { ImmersiveSimulationReport } from './ImmersiveSimulationReport';
 
 interface FullReportPageProps {
   workflowType: 'verify' | 'analyze' | 'simulate';
@@ -306,6 +307,11 @@ export const FullReportPage: React.FC<FullReportPageProps> = ({
     </div>
   );
 
+  // Use immersive report for simulations
+  if (workflowType === 'simulate') {
+    return <ImmersiveSimulationReport result={result} threat={threat} onBack={onBack} />;
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -326,7 +332,6 @@ export const FullReportPage: React.FC<FullReportPageProps> = ({
                 <h1 className="text-2xl font-bold">
                   {workflowType === 'verify' && '🔍 Verification Report'}
                   {workflowType === 'analyze' && '🧬 Analysis Report'}
-                  {workflowType === 'simulate' && '🎬 Simulation Report'}
                 </h1>
                 <p className="text-sm text-muted-foreground">{threat.title}</p>
               </div>
@@ -349,7 +354,6 @@ export const FullReportPage: React.FC<FullReportPageProps> = ({
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         {workflowType === 'verify' && renderVerificationReport()}
         {workflowType === 'analyze' && renderAnalysisReport()}
-        {workflowType === 'simulate' && renderSimulationReport()}
       </div>
     </div>
   );

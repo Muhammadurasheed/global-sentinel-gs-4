@@ -14,9 +14,10 @@ interface HeaderProps {
 export const Header = ({ activeTab, setActiveTab, chaosIndex, threatCount = 0 }: HeaderProps) => {
   const tabs = [
     { id: 'dashboard', label: 'Threat Dashboard', icon: Shield },
+    { id: 'ai', label: 'AI Command', icon: Brain },
     { id: 'map', label: 'Global Map', icon: Globe },
     { id: 'trends', label: 'Analytics', icon: TrendingUp },
-    { id: 'simulator', label: 'Crisis Simulator', icon: Brain },
+    { id: 'simulator', label: 'Crisis Simulator', icon: AlertTriangle },
     { id: 'validator', label: 'Citizen Validator', icon: Users },
     { id: 'admin', label: 'Admin Panel', icon: Settings },
   ];

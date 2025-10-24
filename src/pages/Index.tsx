@@ -11,6 +11,8 @@ import { AdminPanel } from '@/components/AdminPanel';
 import { AlertSystem } from '@/components/AlertSystem';
 import { MatrixBackground } from '@/components/MatrixBackground';
 import RealTimeAnalytics from '@/components/RealTimeAnalytics';
+import { AICommandCenter } from '@/components/AICommandCenter';
+import { LiveAnalyticsDashboard } from '@/components/LiveAnalyticsDashboard';
 import { useThreats } from '../hooks/useThreats';
 
 const Index = () => {
@@ -43,9 +45,11 @@ const Index = () => {
       case 'map':
         return <LiveGlobalMap threats={threats} />;
       case 'trends':
-        return <RealTimeAnalytics />;
+        return <LiveAnalyticsDashboard threats={threats} />;
       case 'admin':
         return <AdminPanel />;
+      case 'ai':
+        return <AICommandCenter />;
       default:
         return <EnhancedThreatDashboard />;
     }

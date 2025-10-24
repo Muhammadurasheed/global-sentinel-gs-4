@@ -8,9 +8,7 @@ class ElasticSearchService {
     this.indexName = 'global-sentinel-threats';
     
     if (!this.cloudId || !this.apiKey) {
-      console.warn('⚠️ Elastic Cloud credentials not found, using fallback mode');
-      this.fallbackMode = true;
-      return;
+      throw new Error('❌ Elastic Cloud credentials required! Set ELASTIC_CLOUD_ID and ELASTIC_API_KEY in backend/.env');
     }
 
     try {
@@ -23,27 +21,21 @@ class ElasticSearchService {
         }
       });
       
-      this.fallbackMode = false;
       console.log('✅ Elastic Search client initialized');
       
       // Initialize index on startup
       this.initializeIndex().catch(err => {
         console.error('❌ Failed to initialize Elastic index:', err.message);
-        this.fallbackMode = true;
+        throw err;
       });
       
     } catch (error) {
       console.error('❌ Failed to initialize Elastic client:', error.message);
-      this.fallbackMode = true;
+      throw error;
     }
   }
 
   async initializeIndex() {
-    if (this.fallbackMode) {
-      console.log('⚠️ Elastic in fallback mode - skipping index creation');
-      return;
-    }
-
     try {
       console.log(`🔍 Checking if index exists: ${this.indexName}`);
       const indexExists = await this.client.indices.exists({ index: this.indexName });
@@ -118,10 +110,7 @@ class ElasticSearchService {
       }
     } catch (error) {
       console.error('❌ Index initialization failed:', error.message);
-      console.log('💡 This is normal if Elastic credentials are not configured');
-      console.log('💡 The system will continue in fallback mode');
-      // Don't throw - allow system to continue in fallback mode
-      this.fallbackMode = true;
+      throw error;
     }
   }
 
@@ -147,11 +136,6 @@ class ElasticSearchService {
   }
 
   async indexThreat(threat) {
-    if (this.fallbackMode) {
-      console.log('⚠️ Elastic fallback mode - skipping indexing');
-      return { success: true, fallback: true };
-    }
-
     try {
       console.log(`🔍 Indexing threat: ${threat.title}`);
       
@@ -183,11 +167,6 @@ class ElasticSearchService {
   }
 
   async bulkIndexThreats(threats) {
-    if (this.fallbackMode) {
-      console.log('⚠️ Elastic fallback mode - skipping bulk indexing');
-      return { success: true, fallback: true, indexed: 0 };
-    }
-
     try {
       console.log(`🔍 Bulk indexing ${threats.length} threats...`);
       
@@ -228,11 +207,6 @@ class ElasticSearchService {
   }
 
   async hybridSearch(query, options = {}) {
-    if (this.fallbackMode) {
-      console.log('⚠️ Elastic fallback mode - returning empty results');
-      return { success: true, threats: [], total: 0, fallback: true };
-    }
-
     try {
       const {
         limit = 50,
@@ -339,11 +313,6 @@ class ElasticSearchService {
   }
 
   async semanticSearch(query, limit = 50) {
-    if (this.fallbackMode) {
-      console.log('⚠️ Elastic fallback mode - returning empty results');
-      return { success: true, threats: [], total: 0, fallback: true };
-    }
-
     try {
       console.log(`🧠 Semantic search for: "${query}"`);
       
@@ -396,12 +365,7 @@ class ElasticSearchService {
   }
 
   async keywordSearch(query, limit = 50) {
-    if (this.fallbackMode) {
-      console.log('⚠️ Elastic fallback mode - returning empty results');
-      return { success: true, threats: [], total: 0, fallback: true };
-    }
-
-    try {
+    try{
       console.log(`📝 Keyword search for: "${query}"`);
 
       const result = await this.client.search({
@@ -455,10 +419,6 @@ class ElasticSearchService {
   }
 
   async getThreatById(threatId) {
-    if (this.fallbackMode) {
-      return { success: false, fallback: true };
-    }
-
     try {
       const result = await this.client.get({
         index: this.indexName,
@@ -480,14 +440,6 @@ class ElasticSearchService {
   }
 
   async getStats() {
-    if (this.fallbackMode) {
-      return { 
-        success: true, 
-        fallback: true,
-        stats: { total: 0, types: {}, regions: {} }
-      };
-    }
-
     try {
       const result = await this.client.search({
         index: this.indexName,

@@ -6,9 +6,7 @@ class GeminiClient {
     this.location = process.env.GOOGLE_CLOUD_LOCATION || 'us-central1';
     
     if (!this.projectId) {
-      console.warn('⚠️ GOOGLE_CLOUD_PROJECT not found, using fallback analysis');
-      this.fallbackMode = true;
-      return;
+      throw new Error('❌ GOOGLE_CLOUD_PROJECT is required! Set up credentials in backend/.env');
     }
 
     try {
@@ -16,20 +14,14 @@ class GeminiClient {
         project: this.projectId,
         location: this.location
       });
-      this.fallbackMode = false;
       console.log(`✅ Gemini client initialized with project: ${this.projectId}`);
     } catch (error) {
       console.error('❌ Failed to initialize Vertex AI:', error.message);
-      this.fallbackMode = true;
+      throw error;
     }
   }
 
   async generateContent(prompt, options = {}) {
-    if (this.fallbackMode) {
-      console.warn('⚠️ Using fallback mode for content generation');
-      return this.generateFallbackContent(prompt, options.type || 'general');
-    }
-
     try {
       const {
         model = 'gemini-2.0-flash-exp',
@@ -59,7 +51,7 @@ class GeminiClient {
       return response.candidates[0].content.parts[0].text;
     } catch (error) {
       console.error('🚨 Gemini API Error:', error.message);
-      return this.generateFallbackContent(prompt, options.type || 'general');
+      throw new Error(`Gemini API failed: ${error.message}. Check your Google Cloud credentials.`);
     }
   }
 
@@ -203,112 +195,6 @@ Be thorough and cite specific, verifiable sources.`;
     );
   }
 
-  generateFallbackContent(prompt, type) {
-    const fallbacks = {
-      reasoning: `Crisis reasoning analysis: ${prompt.substring(0, 100)}...
-
-CAUSAL CHAIN ANALYSIS:
-1. Initial trigger conditions create system stress
-2. Vulnerability exploitation amplifies impact
-3. Cascading failures emerge across domains
-4. Response coordination challenges multiply
-5. Long-term adaptation requirements surface
-
-EVIDENCE ASSESSMENT:
-Supporting factors include historical precedents and current risk indicators. Counter-evidence suggests existing safeguards may mitigate worst outcomes.
-
-CONFIDENCE LEVEL: 72%
-
-KEY FACTORS:
-- Geopolitical stability indicators
-- Economic resilience metrics
-- Infrastructure vulnerability assessments
-- Public health preparedness
-
-IMPLICATIONS:
-Potential for regional impact with cascading effects to interconnected systems. Requires coordinated multi-stakeholder response and enhanced monitoring protocols.`,
-
-      search: `Deep intelligence analysis: ${prompt.substring(0, 100)}...
-
-CURRENT SIGNALS:
-Recent intelligence reports indicate elevated activity patterns across multiple threat domains. Monitoring systems detect anomalous signatures requiring further investigation.
-
-HISTORICAL PRECEDENTS:
-Similar scenarios have emerged in past crisis events (2008 financial crisis, COVID-19 pandemic, Ukraine conflict escalation). Pattern recognition suggests parallel risk factors.
-
-EXPERT ANALYSIS:
-Intelligence community assessments indicate moderate to high probability based on current threat landscape. Academic research supports scenario plausibility.
-
-DATA TRENDS:
-Quantitative indicators show trending patterns consistent with early warning frameworks. Statistical models project continued development along current trajectory.
-
-SOURCE CITATIONS:
-- Global Intelligence Monitoring Systems
-- Academic Crisis Research Networks
-- International Security Frameworks
-- Government Threat Assessments`,
-
-      simulation: `Crisis Simulation Analysis: ${prompt.substring(0, 100)}...
-
-CAUSAL CHAIN:
-1. Initial trigger event creates system stress
-2. Early warning indicators begin appearing
-3. Escalation factors compound existing vulnerabilities
-4. Critical thresholds exceeded in key systems
-5. Cascading effects spread to interconnected networks
-6. Emergency response and containment efforts
-7. International coordination and resource mobilization
-8. Recovery, adaptation, and prevention measures
-
-MITIGATION STRATEGIES:
-1. Immediate: Activate emergency response and early warning systems
-2. Short-term: Deploy crisis management teams and resources
-3. Medium-term: Implement coordinated international response
-4. Long-term: Establish monitoring and prevention systems
-5. Policy: Develop rapid-response governance frameworks
-6. Coordination: Enhance multi-stakeholder cooperation
-
-CONFIDENCE ASSESSMENT: 75%
-
-TIMELINE ESTIMATE: 6-18 months for full scenario development
-
-IMPACT ASSESSMENT: Regional impact with potential global implications across economic, security, and humanitarian domains.`,
-
-      verification: `Threat Verification Analysis: ${prompt.substring(0, 100)}...
-
-SUPPORTING EVIDENCE:
-- Intelligence reports indicate elevated probability
-- Historical precedents support scenario plausibility
-- Expert assessments align with threat parameters
-
-COUNTER EVIDENCE:
-- Existing safeguards may prevent full escalation
-- Alternative explanations available
-- Data completeness limitations exist
-
-SOURCE CITATIONS:
-- https://global-threat-intelligence.gov
-- https://crisis-research.edu
-- https://international-security.int
-
-CONFIDENCE SCORE: 73%
-
-VERDICT: Plausible threat requiring continued monitoring and preparedness measures.`,
-
-      general: `Intelligence Analysis: ${prompt.substring(0, 100)}...
-
-This represents a critical threat vector requiring immediate attention. Historical precedents indicate escalation potential across multiple domains. Key factors include:
-
-• Primary risk drivers: Systemic vulnerabilities and interconnected dependencies
-• Secondary effects: Cascading failures across infrastructure networks
-• Mitigation requirements: Multi-stakeholder coordination and rapid response protocols
-• Timeline considerations: Critical intervention window of 2-6 months
-
-Intelligence sources suggest elevated probability of scenario materialization based on current threat landscape indicators.`
-    };
-
-    return fallbacks[type] || fallbacks.general;
-  }
 }
 
 module.exports = new GeminiClient();

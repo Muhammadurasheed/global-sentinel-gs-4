@@ -46,6 +46,7 @@ app.use('/api/health', require('./routes/health'));
 app.use('/api/sigint', require('./routes/sigint'));
 app.use('/api/elastic', require('./routes/elastic'));
 app.use('/api/agent', require('./routes/agent'));
+app.use('/api/agent-workflow', require('./routes/agentWorkflow'));
 
 // Health check
 app.get('/api/health', async (req, res) => {

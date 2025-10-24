@@ -13,7 +13,8 @@ import {
   Zap,
   Brain,
   Eye,
-  ExternalLink
+  ExternalLink,
+  Shield
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useVoteThreat } from '@/hooks/useThreats';
@@ -22,6 +23,7 @@ import { useToast } from '@/hooks/use-toast';
 import { threatsApi } from '@/api/threats';
 import { AnalysisResultModal } from './AnalysisResultModal';
 import { VoteResultModal } from './VoteResultModal';
+import { AgentWorkflowModal } from './AgentWorkflowModal';
 
 interface EnhancedThreatCardProps {
   threat: {
@@ -57,6 +59,10 @@ const EnhancedThreatCard: React.FC<EnhancedThreatCardProps> = ({
   const [showVoteModal, setShowVoteModal] = useState(false);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [voteResult, setVoteResult] = useState(null);
+  const [agentWorkflow, setAgentWorkflow] = useState<{ isOpen: boolean; type: 'verify' | 'analyze' | 'simulate' | null }>({
+    isOpen: false,
+    type: null
+  });
   const voteMutation = useVoteThreat();
   const { toast } = useToast();
 
@@ -93,31 +99,23 @@ const EnhancedThreatCard: React.FC<EnhancedThreatCardProps> = ({
   };
 
   const handleAnalyze = async () => {
-    setIsAnalyzing(true);
-    try {
-      console.log('🔍 Starting deep analysis for:', threat.title);
-      const response = await threatsApi.deepAnalysis({ 
-        crisisStep: threat.title,
-        analysisType: 'comprehensive'
-      });
-      
-      if (response.data.success) {
-        setAnalysisResult(response.data.analysis);
-        setShowAnalysisModal(true);
-        toast({
-          title: "🔍 Analysis Complete!",
-          description: "Deep intelligence analysis ready",
-        });
-      }
-    } catch (error) {
-      console.error('Analysis error:', error);
-      toast({
-        title: "🔍 Analysis Initiated",
-        description: "Deep intelligence analysis in progress",
-      });
-    } finally {
-      setIsAnalyzing(false);
-    }
+    setAgentWorkflow({ isOpen: true, type: 'analyze' });
+  };
+
+  const handleSimulate = async () => {
+    setAgentWorkflow({ isOpen: true, type: 'simulate' });
+  };
+
+  const handleVerify = async () => {
+    setAgentWorkflow({ isOpen: true, type: 'verify' });
+  };
+
+  const handleWorkflowComplete = (result: any) => {
+    console.log('🎯 Workflow complete:', result);
+    toast({
+      title: "✅ Intelligence Operation Complete",
+      description: `${agentWorkflow.type?.toUpperCase()} analysis finished successfully`,
+    });
   };
 
   const getSeverityColor = (severity: number) => {
@@ -242,12 +240,12 @@ const EnhancedThreatCard: React.FC<EnhancedThreatCardProps> = ({
                 </Button>
               </div>
 
-              {/* Analysis Buttons */}
+              {/* Analysis Buttons - NOW WITH LIVE AGENT WORKFLOWS */}
               <div className="grid grid-cols-3 gap-2">
                 <Button
                   size="sm"
-                  className="cyber-button bg-blue-600/20 text-blue-400 border-blue-500 hover:bg-blue-600/30 text-xs"
-                  onClick={onSimulate ? () => onSimulate(threat) : undefined}
+                  className="cyber-button bg-blue-600/20 text-blue-400 border-blue-500 hover:bg-blue-600/30 text-xs hover:scale-105 transition-transform"
+                  onClick={handleSimulate}
                   disabled={isSimulating}
                 >
                   <Play className={`w-3 h-3 mr-1 ${isSimulating ? 'animate-spin' : ''}`} />
@@ -255,7 +253,7 @@ const EnhancedThreatCard: React.FC<EnhancedThreatCardProps> = ({
                 </Button>
                 <Button
                   size="sm"
-                  className="cyber-button bg-purple-600/20 text-purple-400 border-purple-500 hover:bg-purple-600/30 text-xs"
+                  className="cyber-button bg-purple-600/20 text-purple-400 border-purple-500 hover:bg-purple-600/30 text-xs hover:scale-105 transition-transform"
                   onClick={handleAnalyze}
                   disabled={isAnalyzing}
                 >
@@ -264,11 +262,11 @@ const EnhancedThreatCard: React.FC<EnhancedThreatCardProps> = ({
                 </Button>
                 <Button
                   size="sm"
-                  className="cyber-button bg-green-600/20 text-green-400 border-green-500 hover:bg-green-600/30 text-xs"
-                  onClick={onVerify ? () => onVerify(threat) : undefined}
+                  className="cyber-button bg-green-600/20 text-green-400 border-green-500 hover:bg-green-600/30 text-xs hover:scale-105 transition-transform"
+                  onClick={handleVerify}
                   disabled={isVerifying}
                 >
-                  <Brain className={`w-3 h-3 mr-1 ${isVerifying ? 'animate-pulse' : ''}`} />
+                  <Shield className={`w-3 h-3 mr-1 ${isVerifying ? 'animate-pulse' : ''}`} />
                   Verify
                 </Button>
               </div>
@@ -328,6 +326,17 @@ const EnhancedThreatCard: React.FC<EnhancedThreatCardProps> = ({
         onClose={() => setShowVoteModal(false)}
         result={voteResult}
       />
+
+      {/* Agent Workflow Modal - THE REVOLUTIONARY FEATURE */}
+      {agentWorkflow.type && (
+        <AgentWorkflowModal
+          isOpen={agentWorkflow.isOpen}
+          onClose={() => setAgentWorkflow({ isOpen: false, type: null })}
+          workflowType={agentWorkflow.type}
+          threat={threat}
+          onComplete={handleWorkflowComplete}
+        />
+      )}
     </>
   );
 };

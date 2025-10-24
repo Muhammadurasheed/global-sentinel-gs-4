@@ -5,12 +5,12 @@ import { getFirestore } from 'firebase/firestore';
 
 // Firebase client config - these are safe to expose in client bundles
 const firebaseConfig = {
-  apiKey: "AIzaSyCDHDzHGct1LQ2ssw17Lgio16bK9W2r4KE",
-  authDomain: "global-sentinel-aa33c.firebaseapp.com",
-  projectId: "global-sentinel-aa33c",
-  storageBucket: "global-sentinel-aa33c.firebasestorage.app",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abcdef123456"
+  apiKey: "AIzaSyChM_6ZDrtLiNo0M4mY78RKAMm7ilP8g5U",
+  authDomain: "global-sentinel2.firebaseapp.com",
+  projectId: "global-sentinel2",
+  storageBucket: "global-sentinel2.firebasestorage.app",
+  messagingSenderId: "1050762813317",
+  appId: "1:1050762813317:web:762d2706c3a95b584a6eec"
 };
 
 // Initialize Firebase app

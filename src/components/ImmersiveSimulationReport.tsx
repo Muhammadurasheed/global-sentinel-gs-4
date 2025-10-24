@@ -15,7 +15,7 @@ import {
 interface ImmersiveSimulationReportProps {
   result: any;
   threat: any;
-  onBack: () => void;
+  onBack?: () => void;
 }
 
 export const ImmersiveSimulationReport: React.FC<ImmersiveSimulationReportProps> = ({

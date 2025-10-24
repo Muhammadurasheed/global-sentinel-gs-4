@@ -307,9 +307,25 @@ export const FullReportPage: React.FC<FullReportPageProps> = ({
     </div>
   );
 
-  // Use immersive report for simulations
+  // Use immersive report for simulations - already full-screen optimized
   if (workflowType === 'simulate') {
-    return <ImmersiveSimulationReport result={result} threat={threat} onBack={onBack} />;
+    return (
+      <div className="min-h-screen bg-background">
+        <ImmersiveSimulationReport result={result} threat={threat} />
+        {/* Back button overlay for simulation */}
+        <div className="fixed top-4 left-4 z-50">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onBack}
+            className="gap-2 bg-background/95 backdrop-blur-sm"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Close Simulation
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -323,17 +339,17 @@ export const FullReportPage: React.FC<FullReportPageProps> = ({
                 variant="ghost"
                 size="sm"
                 onClick={onBack}
-                className="gap-2"
+                className="gap-2 hover:bg-primary/10"
               >
                 <ArrowLeft className="h-4 w-4" />
-                Back
+                Close Report
               </Button>
-              <div>
+              <div className="border-l pl-4">
                 <h1 className="text-2xl font-bold">
                   {workflowType === 'verify' && '🔍 Verification Report'}
                   {workflowType === 'analyze' && '🧬 Analysis Report'}
                 </h1>
-                <p className="text-sm text-muted-foreground">{threat.title}</p>
+                <p className="text-sm text-muted-foreground truncate max-w-md">{threat.title}</p>
               </div>
             </div>
             <div className="flex gap-2">

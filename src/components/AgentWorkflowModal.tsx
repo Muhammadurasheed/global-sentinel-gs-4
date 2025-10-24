@@ -365,21 +365,25 @@ export const AgentWorkflowModal: React.FC<AgentWorkflowModalProps> = ({
     }
   };
 
-  // Show full report if requested
-  if (showFullReport && finalResult) {
-    return (
-      <FullReportPage
-        workflowType={workflowType}
-        result={finalResult}
-        threat={threat}
-        onBack={() => setShowFullReport(false)}
-      />
-    );
-  }
-
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+    <>
+      {/* Full-Screen Report Modal */}
+      {showFullReport && finalResult && (
+        <Dialog open={true} onOpenChange={() => setShowFullReport(false)}>
+          <DialogContent className="max-w-[100vw] max-h-[100vh] w-screen h-screen p-0 gap-0">
+            <FullReportPage
+              workflowType={workflowType}
+              result={finalResult}
+              threat={threat}
+              onBack={() => setShowFullReport(false)}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Workflow Progress Modal */}
+      <Dialog open={isOpen && !showFullReport} onOpenChange={onClose}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3 text-2xl">
             <Brain className="h-8 w-8 text-primary" />
@@ -570,5 +574,6 @@ export const AgentWorkflowModal: React.FC<AgentWorkflowModalProps> = ({
         </AnimatePresence>
       </DialogContent>
     </Dialog>
+    </>
   );
 };

@@ -5,32 +5,79 @@ class ElasticSearchService {
   constructor() {
     this.cloudId = process.env.ELASTIC_CLOUD_ID;
     this.apiKey = process.env.ELASTIC_API_KEY;
+    this.nodeUrl = process.env.ELASTIC_NODE_URL;
     this.indexName = 'global-sentinel-threats';
     
-    if (!this.cloudId || !this.apiKey) {
-      throw new Error('❌ Elastic Cloud credentials required! Set ELASTIC_CLOUD_ID and ELASTIC_API_KEY in backend/.env');
+    // Validate credentials
+    if (!this.apiKey) {
+      throw new Error('❌ ELASTIC_API_KEY is required in backend/.env');
+    }
+    
+    if (!this.cloudId && !this.nodeUrl) {
+      throw new Error('❌ Either ELASTIC_CLOUD_ID or ELASTIC_NODE_URL is required in backend/.env');
     }
 
     try {
-      this.client = new Client({
-        cloud: {
-          id: this.cloudId
-        },
+      // Log credential format for debugging (without exposing sensitive data)
+      console.log('🔐 Elastic API Key format:', this.apiKey.substring(0, 10) + '...');
+      console.log('🔐 Using connection method:', this.cloudId ? 'Cloud ID' : 'Node URL');
+      
+      // Build client configuration
+      const clientConfig = {
         auth: {
           apiKey: this.apiKey
         }
-      });
+      };
+      
+      // Use Cloud ID if available, otherwise use node URL
+      if (this.cloudId) {
+        clientConfig.cloud = { id: this.cloudId };
+        console.log('☁️ Connecting to Elastic Cloud via Cloud ID');
+      } else {
+        clientConfig.node = this.nodeUrl;
+        console.log('🌐 Connecting to Elastic via Node URL:', this.nodeUrl);
+      }
+      
+      this.client = new Client(clientConfig);
       
       console.log('✅ Elastic Search client initialized');
       
-      // Initialize index on startup
-      this.initializeIndex().catch(err => {
-        console.error('❌ Failed to initialize Elastic index:', err.message);
+      // Test connection and initialize index
+      this.testConnection().then(() => {
+        return this.initializeIndex();
+      }).catch(err => {
+        console.error('❌ Elastic initialization failed:', err.message);
+        console.error('💡 Check your credentials at: https://cloud.elastic.co/deployments');
         throw err;
       });
       
     } catch (error) {
       console.error('❌ Failed to initialize Elastic client:', error.message);
+      throw error;
+    }
+  }
+
+  async testConnection() {
+    try {
+      console.log('🔌 Testing Elastic connection...');
+      const pingResult = await this.client.ping();
+      console.log('✅ Elastic connection successful');
+      return pingResult;
+    } catch (error) {
+      if (error.meta?.statusCode === 401) {
+        throw new Error(`❌ Elastic authentication failed (401 Unauthorized)
+        
+Your API key is invalid or expired. Please:
+1. Go to https://cloud.elastic.co/deployments
+2. Select your deployment: global-sentinel-threats
+3. Navigate to: Management → Stack Management → API Keys
+4. Create a NEW API key with "All" privileges
+5. Copy the ENCODED key (not the ID)
+6. Update ELASTIC_API_KEY in backend/.env
+
+Current API key starts with: ${this.apiKey.substring(0, 15)}...
+Expected format: A long base64 string or ApiKey <credentials>`);
+      }
       throw error;
     }
   }

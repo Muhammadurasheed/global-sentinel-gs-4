@@ -1,53 +1,91 @@
-# 🔐 Global Sentinel - Complete Setup Guide
+# 🔐 Global Sentinel - Production Setup Guide
 
-## 🎯 Quick Start (For Demo/Development)
+## ⚠️ CRITICAL: Credentials Are REQUIRED
 
-The system works in **FALLBACK MODE** without credentials - perfect for demonstrations!
+Global Sentinel uses **100% real AI and search APIs** - no mocks, no fallbacks.
 
-```bash
-cd backend
-npm install
-npm start
-```
+You **MUST** configure these credentials before running:
+1. ✅ Elastic Cloud (Hybrid Search + Vector Embeddings)
+2. ✅ Google Cloud / Gemini (AI Reasoning + Verification)
+3. ⚡ Firebase (Optional - Data Persistence)
 
-Then in another terminal:
-```bash
-npm run dev
-```
-
-✅ **You're ready to demo! The system uses intelligent fallbacks for missing services.**
+**Estimated Setup Time:** 20-25 minutes
 
 ---
 
-## 🚀 Full Production Setup (Optional)
+## 🚀 Setup Instructions
 
-To unlock the full power of Gemini + Elastic + Firebase:
+### 1. 📊 Elastic Cloud Setup (CRITICAL - 10 min)
 
-### 1. 📊 Elastic Cloud Setup (For Hybrid Search)
+1. **Create Free Account**: https://cloud.elastic.co/registration
 
-1. **Create Free Elastic Cloud Account**: https://cloud.elastic.co/registration
 2. **Create Deployment**:
-   - Name: `global-sentinel`
-   - Region: Choose closest to you
-   - Version: Latest 8.x
-   - Size: 1GB RAM (Free tier)
-3. **Get Credentials**:
-   - Click "Manage" on your deployment
-   - Go to "Security" → "API Keys"
-   - Click "Create API Key"
-   - Copy the **API Key**
-   - Copy the **Cloud ID** from deployment overview
-4. **Add to `.env`**:
+   - Click "Create deployment"
+   - Name: `global-sentinel-threats`
+   - Template: **General Purpose**
+   - Region: `us-central1` (GCP - matches Gemini)
+   - Size: **1GB RAM** (Free tier eligible)
+   - Click "Create deployment"
+   - ⏱️ Wait 2-3 minutes for provisioning
+
+3. **Get Cloud ID**:
+   - Go to deployment overview page
+   - Find **Cloud ID** section
+   - Click "Copy" button
+   - Paste into `backend/.env`:
+     ```bash
+     ELASTIC_CLOUD_ID=deployment_name:base64_string_here
+     ```
+
+4. **Create API Key** (⚠️ MOST COMMON ERROR - READ CAREFULLY):
+   
+   **Navigation:**
+   ```
+   Deployment → Management → Stack Management → Security → API Keys
+   ```
+   
+   **Create Key:**
+   - Click "Create API key" button
+   - Name: `global-sentinel-api`
+   - Type: Personal
+   - Expiration: **Never** (for development)
+   - Privileges: Leave default (inherits permissions)
+   
+   **⚠️ CRITICAL - Copy the RIGHT field:**
+   ```
+   ✅ CORRECT: Copy the "Encoded" field
+      - Very long base64 string (100+ characters)
+      - Example: VnVaQ2EzUUJyM01CYm5aNFgyRnBPbVl5...
+   
+   ❌ WRONG: Don't copy the "ID" field  
+      - Shorter string starting with essu_
+      - Example: essu_YzNJMmVVVTFi...
+   ```
+   
+   **Add to `.env`:**
    ```bash
-   ELASTIC_CLOUD_ID=your-cloud-id-here
-   ELASTIC_API_KEY=your-api-key-here
+   ELASTIC_API_KEY=VnVaQ2EzUUJyM01CYm5aNFgyRnBP...(full encoded string)
    ```
 
-**Why Elastic?** 
-- Hybrid search combining BM25 keyword + vector semantic search
-- Real-time threat indexing with ELSER embeddings
-- Sub-second search across millions of threat documents
-- Perfect for the hackathon "Elastic Challenge" requirements
+5. **Verify**:
+   ```bash
+   cd backend
+   npm start
+   ```
+   You should see:
+   ```
+   ✅ Elastic Search client initialized
+   🔌 Testing Elastic connection...
+   ✅ Elastic connection successful
+   ```
+
+**🚨 Got 401 Error?** See `ELASTIC_TROUBLESHOOTING.md` for detailed fix.
+
+**Why Elastic?**
+- Hybrid search: BM25 keyword + cosine similarity vector search
+- Real-time threat indexing with embeddings
+- Sub-second queries across millions of documents
+- ✅ **Required for Elastic Challenge submission**
 
 ---
 
@@ -126,91 +164,95 @@ curl -X POST http://localhost:5000/api/agent-workflow/verify \
 
 ## 📋 Environment Variable Summary
 
-Create `backend/.env` file:
+Create `backend/.env` file with these **REQUIRED** credentials:
 
 ```bash
-# Elastic (OPTIONAL - works without it)
-ELASTIC_CLOUD_ID=your-cloud-id
-ELASTIC_API_KEY=your-api-key
+# ============================================
+# 🔥 REQUIRED CREDENTIALS FOR PRODUCTION
+# ============================================
 
-# Google Cloud (OPTIONAL - works without it)
+# Elastic Cloud (REQUIRED)
+ELASTIC_CLOUD_ID=your-cloud-id-here
+ELASTIC_API_KEY=your-encoded-api-key-here
+
+# Google Cloud / Gemini (REQUIRED)
 GOOGLE_CLOUD_PROJECT=your-project-id
 GOOGLE_CLOUD_LOCATION=us-central1
 
-# Firebase (OPTIONAL - works without it)
+# Firebase (OPTIONAL)
 FIREBASE_PROJECT_ID=your-project-id
 FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 FIREBASE_CLIENT_EMAIL=service-account@project.iam.gserviceaccount.com
 
-# Server
+# Server Configuration
 PORT=5000
 NODE_ENV=development
 ```
 
 ---
 
-## ⚡ Fallback Mode vs Full Mode
-
-### Fallback Mode (No Credentials)
-✅ All UI features work  
-✅ Simulated agent workflows  
-✅ Mock data responses  
-✅ Perfect for demos  
-
-### Full Mode (With Credentials)
-🚀 Real Gemini reasoning  
-🚀 Live Elastic hybrid search  
-🚀 Firebase data persistence  
-🚀 Google Search grounding  
-🚀 Production-ready  
-
----
-
-## 🎬 For Hackathon Judges
-
-**No setup required!** The system demonstrates all features in fallback mode:
-
-1. ✅ Triple-agent verification workflows
-2. ✅ Deep causal analysis with Gemini
-3. ✅ Crisis simulation with Monte Carlo
-4. ✅ Elastic hybrid search interface
-5. ✅ Real-time threat feed
-6. ✅ Interactive global map
-7. ✅ AI command center
-
-**Want to see real integrations?** 
-We can activate live Gemini + Elastic in the demo with our credentials!
-
----
-
 ## 🆘 Troubleshooting
 
-### "Elastic index initialization failed"
-➡️ This is normal in fallback mode! The system works without Elastic.
+### ❌ "401 Unauthorized" from Elastic
+**Cause:** Wrong API key format or expired key
 
-### "GOOGLE_CLOUD_PROJECT not found"
-➡️ This is normal in fallback mode! The system works without Gemini.
+**Fix:** See `ELASTIC_TROUBLESHOOTING.md` for step-by-step guide
 
-### "Firebase running in demo mode"
-➡️ This is normal in fallback mode! The system works without Firebase.
+**Quick check:**
+- Is your API key 100+ characters long?
+- Did you copy the "Encoded" field (not "ID")?
+- Does it start with random letters (not "essu_")?
 
-**All these warnings are by design** - the system gracefully degrades to demo mode!
+### ❌ "GOOGLE_CLOUD_PROJECT not found"  
+**Cause:** Missing Gemini credentials
+
+**Fix:**
+1. Set `GOOGLE_CLOUD_PROJECT=your-project-id` in `.env`
+2. Run `gcloud auth application-default login`
+3. Or set `GOOGLE_APPLICATION_CREDENTIALS` path
+
+### ❌ "Failed to initialize Elastic index"
+**Cause:** Can't connect to Elastic Cloud
+
+**Fix:**
+1. Check your deployment is running at https://cloud.elastic.co
+2. Verify Cloud ID is correct
+3. Regenerate API key if needed
+4. Ensure deployment region matches (`us-central1`)
 
 ---
 
 ## 🏆 Production Deployment Checklist
 
-- [ ] Set up Elastic Cloud deployment
-- [ ] Enable Vertex AI in Google Cloud
-- [ ] Create Firebase project with Firestore
-- [ ] Add all credentials to `.env`
-- [ ] Test all services with health checks
-- [ ] Deploy frontend to hosting
-- [ ] Deploy backend to Cloud Run / Compute Engine
-- [ ] Configure CORS for production domain
-- [ ] Set up monitoring and alerting
-- [ ] Enable HTTPS with valid certificates
+- [ ] ✅ Elastic Cloud deployment created and tested
+- [ ] ✅ Vertex AI API enabled in Google Cloud  
+- [ ] ✅ Application Default Credentials configured
+- [ ] ⚡ Firebase project created (optional)
+- [ ] ✅ All credentials added to `backend/.env`
+- [ ] ✅ Health checks passing for all services
+- [ ] 🚀 Backend server starts without errors
+- [ ] 🎯 Sample threats indexed successfully
+- [ ] 🔍 Hybrid search returning results
+- [ ] 🤖 Agent workflows executing with real AI
 
 ---
 
-**Remember**: The system is designed to impress in demo mode. Credentials unlock additional power but aren't required for the hackathon demo! 🎯
+## 🎬 For Hackathon Judges
+
+**This system uses 100% real APIs - no mocks, no fallbacks!**
+
+### What You'll Experience:
+1. 🔍 **Real Elastic Hybrid Search** - BM25 + vector similarity
+2. 🧠 **Real Gemini 2.0 Reasoning** - Multi-agent verification
+3. 🌐 **Google Search Grounding** - Live web verification
+4. ⚡ **Production-Ready Architecture** - Scales to millions of threats
+
+### Setup Time: ~20 minutes
+Follow the guide above to see the system in full production mode.
+
+### Demo Credentials Available
+Contact us if you'd like pre-configured demo credentials for evaluation.
+
+---
+
+**Status:** ✅ 100% Production Ready | Zero Fallbacks | Real AI + Real Search
